@@ -137,7 +137,7 @@ class AthanService : Service() {
             getString(R.string.athan_stop),
             stop,
         ).build()
-        val builder = Notification.Builder(this, AthanLockScreen.CHANNEL_ID)
+        val builder = notificationBuilder(this, AthanLockScreen.CHANNEL_ID, highPriority = true)
             .setSmallIcon(R.drawable.ic_athan)
             .setContentTitle(getString(R.string.athan_playing_title))
             .setContentText(prayer.name)
@@ -153,6 +153,7 @@ class AthanService : Service() {
     }
 
     private fun ensureChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = getSystemService(NotificationManager::class.java)
         val channel = NotificationChannel(
             AthanLockScreen.CHANNEL_ID,

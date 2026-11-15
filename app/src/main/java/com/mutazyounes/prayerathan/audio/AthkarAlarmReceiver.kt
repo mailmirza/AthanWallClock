@@ -31,7 +31,7 @@ class AthkarAlarmReceiver : BroadcastReceiver() {
             app.athanController.schedule(day, now)
             return
         }
-        context.startForegroundService(AthkarService.playIntent(context))
+        context.startForegroundServiceCompat(AthkarService.playIntent(context))
     }
 
     companion object {

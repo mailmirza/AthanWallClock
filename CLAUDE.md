@@ -9,7 +9,7 @@ PrayerAthan is a full-screen, dedicated ambient wall clock and prayer time displ
 - **UI:** 100% Jetpack Compose with adaptive layouts.
 - **Prayer Engine:** Pure Kotlin wrapper around `adhan-kotlin` (`com.batoulapps.adhan:adhan2`).
 - **Audio:** Reliable background playback with Android `AlarmManager` (`setAlarmClock`), foreground service, and `MediaPlayer`.
-- **Target SDK:** 36 | **Min SDK:** 26 (Android 8.0+).
+- **Target SDK:** 36 | **Min SDK:** 24 (Android 7.0+).
 
 ---
 

@@ -25,7 +25,7 @@ android {
 
     defaultConfig {
         applicationId = "com.mailmirza.athanwallclock"
-        minSdk = 26
+        minSdk = 24
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
@@ -65,6 +65,8 @@ android {
     }
 
     compileOptions {
+        // java.time on Android 7 comes from the desugared JDK library.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -92,6 +94,7 @@ kotlin {
 }
 
 dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     implementation("com.batoulapps.adhan:adhan2:0.0.7")
     implementation(platform("androidx.compose:compose-bom:2026.06.01"))
     implementation("androidx.activity:activity-compose:1.12.4")

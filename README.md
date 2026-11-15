@@ -7,7 +7,7 @@
 **A dedicated, full-screen wall clock and prayer time display for Android tablets.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-amber.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Android%208.0%2B%20(API%2026%2B)-blue.svg)](https://developer.android.com)
+[![Platform](https://img.shields.io/badge/Platform-Android%207.0%2B%20(API%2024%2B)-blue.svg)](https://developer.android.com)
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-BOM%202026.06.01-brightgreen.svg)](https://developer.android.com/jetpack/compose)
 
 Application ID `com.mailmirza.athanwallclock`

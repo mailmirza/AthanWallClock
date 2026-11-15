@@ -30,6 +30,14 @@ jobs:
       - name: Build debug APK
         run: ./gradlew assembleDebug --stacktrace
 
+      - name: Lint (API level check, does not block the build)
+        if: always()
+        continue-on-error: true
+        run: |
+          ./gradlew lintDebug || true
+          echo "---- NewApi findings ----"
+          grep -B2 -A8 "NewApi\|InlinedApi" app/build/reports/lint-results-debug.txt || echo "none"
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:

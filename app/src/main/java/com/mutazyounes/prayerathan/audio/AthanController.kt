@@ -96,7 +96,7 @@ class DefaultAthanController(
         stopAthkar()
         markIdle()
         markDemo(demoKey)
-        appContext.startForegroundService(
+        appContext.startForegroundServiceCompat(
             AthanService.demoIntent(appContext, soundId, volumePercent, demoKey),
         )
     }
@@ -108,7 +108,7 @@ class DefaultAthanController(
         }
         markIdle()
         markDemo(AthkarService.demoId(clip))
-        appContext.startForegroundService(AthkarService.demoIntent(appContext, clip))
+        appContext.startForegroundServiceCompat(AthkarService.demoIntent(appContext, clip))
     }
 
     override fun playHourlyAthkarDemo(volumePercent: Int) {
@@ -118,7 +118,7 @@ class DefaultAthanController(
         }
         markIdle()
         markDemo(AthanVolume.HOURLY_DEMO_KEY)
-        appContext.startForegroundService(
+        appContext.startForegroundServiceCompat(
             AthkarService.hourlyDemoIntent(appContext, volumePercent),
         )
     }
@@ -130,7 +130,7 @@ class DefaultAthanController(
         }
         markIdle()
         markDemo(AthanVolume.MORNING_DEMO_KEY)
-        appContext.startForegroundService(
+        appContext.startForegroundServiceCompat(
             AthkarService.morningDemoIntent(appContext, volumePercent),
         )
     }

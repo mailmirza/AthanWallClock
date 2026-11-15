@@ -36,7 +36,7 @@ class MorningAthkarAlarmReceiver : BroadcastReceiver() {
             reschedule(app, day, now)
             return
         }
-        context.startForegroundService(AthkarService.morningPlayIntent(context, index))
+        context.startForegroundServiceCompat(AthkarService.morningPlayIntent(context, index))
     }
 
     private fun reschedule(

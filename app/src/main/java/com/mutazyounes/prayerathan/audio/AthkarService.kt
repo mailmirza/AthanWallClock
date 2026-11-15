@@ -205,7 +205,7 @@ class AthkarService : Service() {
             getString(R.string.athan_stop),
             stop,
         ).build()
-        return Notification.Builder(this, CHANNEL_ID)
+        return notificationBuilder(this, CHANNEL_ID, highPriority = false)
             .setSmallIcon(R.drawable.ic_athan)
             .setContentTitle(getString(R.string.athkar_playing_title))
             .setContentText(text)
@@ -218,6 +218,7 @@ class AthkarService : Service() {
     }
 
     private fun ensureChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = getSystemService(NotificationManager::class.java)
         val channel = NotificationChannel(
             CHANNEL_ID,
