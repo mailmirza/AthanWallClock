@@ -36,7 +36,7 @@ jobs:
         run: |
           ./gradlew lintDebug || true
           echo "---- NewApi findings ----"
-          grep -B2 -A8 "NewApi\|InlinedApi" app/build/reports/lint-results-debug.txt || echo "none"
+          grep -B2 -A8 "NewApi\|InlinedApi" app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt || echo "none"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
