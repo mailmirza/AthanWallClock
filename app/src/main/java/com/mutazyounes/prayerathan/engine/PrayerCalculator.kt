@@ -13,6 +13,7 @@ import java.time.ZoneId
 class PrayerCalculator(
     private val locationStore: LocationStore = InMemoryLocationStore(),
     private val offsetStore: OffsetStore = InMemoryOffsetStore(),
+    private val methodStore: MethodStore = InMemoryMethodStore(),
 ) : PrayerEngine {
 
     private var cacheOne: Pair<TimesKey, List<PrayerInstant>>? = null
@@ -62,19 +63,23 @@ class PrayerCalculator(
 
     private fun timesFor(localDate: LocalDate, location: SavedLocation): List<PrayerInstant> {
         val offsets = offsetStore.read()
+        val methodSettings = methodStore.read()
+        val method = PrayerMethod.resolve(methodSettings, location.timeZoneId)
         val key = TimesKey(
             localDate,
             location.latitude,
             location.longitude,
             location.timeZoneId,
             offsets.fingerprint(),
+            method,
+            methodSettings.asr,
         )
         cacheOne?.let { if (it.first == key) return it.second }
         cacheTwo?.let { if (it.first == key) return it.second }
         val prayerTimes = PrayerTimes(
             Coordinates(location.latitude, location.longitude),
             DateComponents(localDate.year, localDate.monthValue, localDate.dayOfMonth),
-            PARAMETERS,
+            parametersFor(method, methodSettings.asr),
         )
         val computed = listOf(
             PrayerInstant(PrayerName.FAJR, javaInstant(prayerTimes.fajr.toEpochMilliseconds())),
@@ -95,9 +100,26 @@ class PrayerCalculator(
     private fun javaInstant(epochMilli: Long): Instant = Instant.ofEpochMilli(epochMilli)
 
     companion object {
-        private val PARAMETERS = CalculationMethod.NORTH_AMERICA.parameters.copy(
-            madhab = Madhab.SHAFI,
-        )
+        private fun parametersFor(method: CalcMethod, asr: AsrSchool) =
+            adhanMethod(method).parameters.copy(
+                madhab = when (asr) {
+                    AsrSchool.SHAFI -> Madhab.SHAFI
+                    AsrSchool.HANAFI -> Madhab.HANAFI
+                },
+            )
+
+        private fun adhanMethod(method: CalcMethod): CalculationMethod = when (method) {
+            CalcMethod.MUSLIM_WORLD_LEAGUE -> CalculationMethod.MUSLIM_WORLD_LEAGUE
+            CalcMethod.UMM_AL_QURA -> CalculationMethod.UMM_AL_QURA
+            CalcMethod.DUBAI -> CalculationMethod.DUBAI
+            CalcMethod.KUWAIT -> CalculationMethod.KUWAIT
+            CalcMethod.QATAR -> CalculationMethod.QATAR
+            CalcMethod.EGYPTIAN -> CalculationMethod.EGYPTIAN
+            CalcMethod.KARACHI -> CalculationMethod.KARACHI
+            CalcMethod.NORTH_AMERICA -> CalculationMethod.NORTH_AMERICA
+            CalcMethod.MOON_SIGHTING_COMMITTEE -> CalculationMethod.MOON_SIGHTING_COMMITTEE
+            CalcMethod.SINGAPORE -> CalculationMethod.SINGAPORE
+        }
         private val ATHAN_TARGETS = PrayerName.athanTargets().toSet()
     }
 }
@@ -108,4 +130,6 @@ private data class TimesKey(
     val longitude: Double,
     val timeZoneId: String,
     val offsets: List<Int>,
+    val method: CalcMethod,
+    val asr: AsrSchool,
 )

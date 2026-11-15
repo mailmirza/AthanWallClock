@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -83,10 +84,12 @@ import androidx.compose.ui.window.PopupProperties
 import com.mutazyounes.prayerathan.audio.AthanCatalog
 import com.mutazyounes.prayerathan.audio.AthanSoundChoice
 import com.mutazyounes.prayerathan.audio.AthanVolume
+import com.mutazyounes.prayerathan.engine.AsrSchool
+import com.mutazyounes.prayerathan.engine.CalcMethod
 import com.mutazyounes.prayerathan.engine.CityCatalog
+import com.mutazyounes.prayerathan.engine.MethodSettings
 import com.mutazyounes.prayerathan.engine.PlaceCity
 import com.mutazyounes.prayerathan.engine.PlaceCountry
-import com.mutazyounes.prayerathan.engine.PrayerMethod
 import com.mutazyounes.prayerathan.engine.PrayerName
 import com.mutazyounes.prayerathan.engine.PrayerOffsets
 import java.util.Locale
@@ -122,6 +125,8 @@ fun SettingsSheet(
     prayerVolumes: Map<PrayerName, Int>,
     prayerOffsets: Map<PrayerName, Int>,
     prayerClockTimes: Map<PrayerName, String>,
+    methodSettings: MethodSettings,
+    resolvedMethod: CalcMethod,
     nightBlackoutEnabled: Boolean,
     demoId: String?,
     onSelectLocation: (String, Double, Double, String) -> Unit,
@@ -136,6 +141,8 @@ fun SettingsSheet(
     onTogglePrayerMute: (PrayerName) -> Unit,
     onPrayerVolumeChange: (PrayerName, Int) -> Unit,
     onPrayerOffsetChange: (PrayerName, Int) -> Unit,
+    onCalcMethodChange: (CalcMethod?) -> Unit,
+    onAsrSchoolChange: (AsrSchool) -> Unit,
     onPlayPrayerVolumePreview: (PrayerName, Int) -> Unit,
     onNightBlackoutChange: (Boolean) -> Unit,
     onPlayAthanDemo: (String) -> Unit,
@@ -380,6 +387,12 @@ fun SettingsSheet(
                                 },
                                 onUseGps = onUseGps,
                             )
+                            CalculationCard(
+                                settings = methodSettings,
+                                resolved = resolvedMethod,
+                                onMethodChange = onCalcMethodChange,
+                                onAsrChange = onAsrSchoolChange,
+                            )
                             TimeAdjustmentsCard(
                                 offsets = prayerOffsets,
                                 clockTimes = prayerClockTimes,
@@ -474,6 +487,13 @@ fun SettingsSheet(
                                 }
                             },
                             onUseGps = onUseGps,
+                        )
+
+                        CalculationCard(
+                            settings = methodSettings,
+                            resolved = resolvedMethod,
+                            onMethodChange = onCalcMethodChange,
+                            onAsrChange = onAsrSchoolChange,
                         )
 
                         TimeAdjustmentsCard(
@@ -721,14 +741,64 @@ private fun LocationSectionCard(
             onClick = onUseGps,
             modifier = Modifier.fillMaxWidth(),
         )
+    }
+}
 
-        Spacer(Modifier.height(10.dp))
-        Text(
-            text = PrayerMethod.settingsLine(),
-            color = palette.prayerPast.copy(alpha = 0.85f),
-            fontSize = 12.sp,
-            fontFamily = EnglishFontFamily,
-        )
+@Composable
+private fun CalculationCard(
+    settings: MethodSettings,
+    resolved: CalcMethod,
+    onMethodChange: (CalcMethod?) -> Unit,
+    onAsrChange: (AsrSchool) -> Unit,
+) {
+    val palette = LocalWallPalette.current
+    val options: List<CalcMethod?> = listOf<CalcMethod?>(null) + CalcMethod.entries
+    ModernCardContainer(
+        title = "Prayer calculation",
+        icon = Icons.Default.Settings,
+        subtitle = "Method for Fajr and Isha · school for Asr",
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            options.chunked(2).forEach { pair ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    pair.forEach { option ->
+                        PrayerToggleChip(
+                            title = option?.label ?: "Auto · ${resolved.label}",
+                            active = settings.method == option,
+                            onClick = { onMethodChange(option) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    if (pair.size == 1) {
+                        Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "Asr school",
+                color = palette.prayerPast.copy(alpha = 0.85f),
+                fontSize = 12.sp,
+                fontFamily = EnglishFontFamily,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                AsrSchool.entries.forEach { school ->
+                    PrayerToggleChip(
+                        title = school.label,
+                        active = settings.asr == school,
+                        onClick = { onAsrChange(school) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
     }
 }
 

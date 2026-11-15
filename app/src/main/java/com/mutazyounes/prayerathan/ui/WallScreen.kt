@@ -146,6 +146,8 @@ fun WallScreen(
                     prayerVolumes = state.prayerVolumes,
                     prayerOffsets = state.prayerOffsets,
                     prayerClockTimes = state.prayerClockTimes,
+                    methodSettings = state.methodSettings,
+                    resolvedMethod = state.resolvedMethod,
                     nightBlackoutEnabled = state.nightBlackoutEnabled,
                     demoId = state.demoId,
                     onSelectLocation = { label, lat, lon, zone ->
@@ -164,6 +166,8 @@ fun WallScreen(
                     onTogglePrayerMute = viewModel::togglePrayerMute,
                     onPrayerVolumeChange = viewModel::setPrayerVolume,
                     onPrayerOffsetChange = viewModel::setPrayerOffset,
+                    onCalcMethodChange = viewModel::setCalcMethod,
+                    onAsrSchoolChange = viewModel::setAsrSchool,
                     onPlayPrayerVolumePreview = viewModel::playPrayerVolumePreview,
                     onNightBlackoutChange = viewModel::setNightBlackout,
                     onPlayAthanDemo = viewModel::playAthanDemo,

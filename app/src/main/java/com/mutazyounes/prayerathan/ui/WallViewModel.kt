@@ -7,11 +7,15 @@ import com.mutazyounes.prayerathan.audio.AthanController
 import com.mutazyounes.prayerathan.audio.AthanVolume
 import com.mutazyounes.prayerathan.audio.AthkarClip
 import com.mutazyounes.prayerathan.audio.AudioSettingsStore
+import com.mutazyounes.prayerathan.engine.AsrSchool
+import com.mutazyounes.prayerathan.engine.CalcMethod
 import com.mutazyounes.prayerathan.engine.CityCatalog
 import com.mutazyounes.prayerathan.engine.LocationStore
+import com.mutazyounes.prayerathan.engine.MethodStore
 import com.mutazyounes.prayerathan.engine.OffsetStore
 import com.mutazyounes.prayerathan.engine.PrayerDay
 import com.mutazyounes.prayerathan.engine.PrayerEngine
+import com.mutazyounes.prayerathan.engine.PrayerMethod
 import com.mutazyounes.prayerathan.engine.PrayerName
 import com.mutazyounes.prayerathan.engine.PrayerOffsets
 import com.mutazyounes.prayerathan.engine.SavedLocation
@@ -44,6 +48,7 @@ class WallViewModel(
     private val weather: WeatherClient,
     private val locationStore: LocationStore,
     private val offsetStore: OffsetStore,
+    private val methodStore: MethodStore,
     private val locationFixer: LocationFixer,
     private val audioSettings: AudioSettingsStore,
     private val wallClock: WallClock = SystemWallClock,
@@ -189,6 +194,17 @@ class WallViewModel(
     fun setPrayerVolume(prayer: PrayerName, percent: Int) {
         audioSettings.setPrayerVolume(prayer, percent)
         refresh(now())
+    }
+
+    /** Null means Auto: follow the saved location's region. */
+    fun setCalcMethod(method: CalcMethod?) {
+        methodStore.write(methodStore.read().copy(method = method))
+        refresh(now(), forceSchedule = true)
+    }
+
+    fun setAsrSchool(asr: AsrSchool) {
+        methodStore.write(methodStore.read().copy(asr = asr))
+        refresh(now(), forceSchedule = true)
     }
 
     fun setPrayerOffset(prayer: PrayerName, minutes: Int) {
@@ -368,6 +384,8 @@ class WallViewModel(
         val mutedPrayers = audioSettings.mutedPrayers()
         val prayerOffsets = offsetStore.read()
         val prayerOffsetMinutes = PrayerOffsets.ALL.associateWith { prayerOffsets.minutesOf(it) }
+        val methodSettings = methodStore.read()
+        val resolvedMethod = PrayerMethod.resolve(methodSettings, location.timeZoneId)
         val albanyClock = formatClock(clocks.albany, twelveHour)
         val jordanClock = formatClock(clocks.jordan, twelveHour)
         val previous = _state.value
@@ -387,6 +405,8 @@ class WallViewModel(
             previous.playingName == playingName &&
             previous.mutedPrayers == mutedPrayers &&
             previous.prayerOffsets == prayerOffsetMinutes &&
+            previous.methodSettings == methodSettings &&
+            previous.resolvedMethod == resolvedMethod &&
             previous.locationTimeZoneId == location.timeZoneId &&
             cellKindsUnchanged(now, day, playingName, previous) &&
             previous.cells.firstOrNull()?.weatherCondition == weatherConditionFor(day.times.first().at)?.condition.orEmpty()
@@ -428,6 +448,8 @@ class WallViewModel(
             prayerVolumes = audioSettings.prayerVolumes(),
             prayerOffsets = prayerOffsetMinutes,
             prayerClockTimes = prayerClockTimes,
+            methodSettings = methodSettings,
+            resolvedMethod = resolvedMethod,
             demoId = athan.demoId.value,
             nightBlackoutEnabled = settings.nightBlackout(),
             isNightBlackout = settings.nightBlackout() && isNightBlackoutWindow(clocks.albany.hour) && !playing && athan.demoId.value == null,
@@ -552,6 +574,7 @@ class WallViewModel(
             weather: WeatherClient,
             locationStore: LocationStore,
             offsetStore: OffsetStore,
+            methodStore: MethodStore,
             locationFixer: LocationFixer,
             audioSettings: AudioSettingsStore,
             wallClock: WallClock,
@@ -566,6 +589,7 @@ class WallViewModel(
                         weather,
                         locationStore,
                         offsetStore,
+                        methodStore,
                         locationFixer,
                         audioSettings,
                         wallClock,

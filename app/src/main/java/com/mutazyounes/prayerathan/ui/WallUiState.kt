@@ -1,5 +1,7 @@
 package com.mutazyounes.prayerathan.ui
 
+import com.mutazyounes.prayerathan.engine.CalcMethod
+import com.mutazyounes.prayerathan.engine.MethodSettings
 import com.mutazyounes.prayerathan.engine.PrayerName
 
 data class WallUiState(
@@ -36,6 +38,8 @@ data class WallUiState(
     val prayerVolumes: Map<PrayerName, Int>,
     val prayerOffsets: Map<PrayerName, Int>,
     val prayerClockTimes: Map<PrayerName, String>,
+    val methodSettings: MethodSettings,
+    val resolvedMethod: CalcMethod,
     val demoId: String?,
     val nightBlackoutEnabled: Boolean,
     val isNightBlackout: Boolean,
@@ -74,6 +78,8 @@ data class WallUiState(
             prayerVolumes = PrayerName.athanTargets().associateWith { 100 },
             prayerOffsets = PrayerName.entries.associateWith { 0 },
             prayerClockTimes = emptyMap(),
+            methodSettings = MethodSettings.AUTO,
+            resolvedMethod = CalcMethod.MUSLIM_WORLD_LEAGUE,
             demoId = null,
             nightBlackoutEnabled = true,
             isNightBlackout = false,

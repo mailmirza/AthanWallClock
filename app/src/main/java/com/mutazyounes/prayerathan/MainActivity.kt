@@ -64,6 +64,7 @@ class MainActivity : ComponentActivity() {
                     app.weatherClient,
                     app.locationStore,
                     app.offsetStore,
+                    app.methodStore,
                     app.locationFixer,
                     app.audioSettings,
                     app.wallClock,
