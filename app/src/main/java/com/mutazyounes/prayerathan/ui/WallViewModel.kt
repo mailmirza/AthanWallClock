@@ -7,9 +7,6 @@ import com.mutazyounes.prayerathan.audio.AthanController
 import com.mutazyounes.prayerathan.audio.AthanVolume
 import com.mutazyounes.prayerathan.audio.AthkarClip
 import com.mutazyounes.prayerathan.audio.AudioSettingsStore
-import com.mutazyounes.prayerathan.audio.MedicineSettingsStore
-import com.mutazyounes.prayerathan.audio.MedicineSlot
-import com.mutazyounes.prayerathan.audio.MedicineVoice
 import com.mutazyounes.prayerathan.engine.CityCatalog
 import com.mutazyounes.prayerathan.engine.LocationStore
 import com.mutazyounes.prayerathan.engine.OffsetStore
@@ -49,7 +46,6 @@ class WallViewModel(
     private val offsetStore: OffsetStore,
     private val locationFixer: LocationFixer,
     private val audioSettings: AudioSettingsStore,
-    private val medicineSettings: MedicineSettingsStore,
     private val wallClock: WallClock = SystemWallClock,
 ) : ViewModel() {
 
@@ -60,7 +56,6 @@ class WallViewModel(
     private var lastScheduledDate: LocalDate? = null
     private var wasPlaying: Boolean = false
     private var wasAthkar: Boolean = false
-    private var wasMedicine: Boolean = false
     private var weatherLine: String = ""
     private var weatherCondition: String = ""
     private var hourlyWeather: List<HourlyWeather> = emptyList()
@@ -91,11 +86,6 @@ class WallViewModel(
         }
         viewModelScope.launch {
             athan.athkarPlayback.collect {
-                refresh(now())
-            }
-        }
-        viewModelScope.launch {
-            athan.medicinePlayback.collect {
                 refresh(now())
             }
         }
@@ -182,35 +172,6 @@ class WallViewModel(
         }
         audioSettings.setMorningAthkarVolume(percent)
         athan.playMorningAthkarDemo(percent)
-        refresh(now())
-    }
-
-    fun setMedicineEnabled(enabled: Boolean) {
-        medicineSettings.setEnabled(enabled)
-        refresh(now(), forceSchedule = true)
-    }
-
-    fun setMedicineVoice(voice: MedicineVoice) {
-        medicineSettings.setVoice(voice)
-        refresh(now())
-    }
-
-    fun upsertMedicineSlot(slot: MedicineSlot) {
-        medicineSettings.upsertSlot(slot)
-        refresh(now(), forceSchedule = true)
-    }
-
-    fun removeMedicineSlot(id: String) {
-        medicineSettings.removeSlot(id)
-        refresh(now(), forceSchedule = true)
-    }
-
-    fun playMedicineDemo() {
-        if (athan.demoId.value == "medicine:preview") {
-            stopDemo()
-            return
-        }
-        athan.playMedicineDemo()
         refresh(now())
     }
 
@@ -375,7 +336,6 @@ class WallViewModel(
         val albanyClock = formatClock(clocks.albany, twelveHour)
         val jordanClock = formatClock(clocks.jordan, twelveHour)
         val playing = playingName != null
-        val medicineOn = athan.medicinePlayback.value != null && !playing
         _state.value = previous.copy(
             gregorianDate = clocks.albany.format(DATE_LINE),
             weekday = clocks.albany.format(WEEKDAY),
@@ -388,7 +348,6 @@ class WallViewModel(
             isNightBlackout = settings.nightBlackout() &&
                 isNightBlackoutWindow(clocks.albany.hour) &&
                 !playing &&
-                !medicineOn &&
                 athan.demoId.value == null,
         )
     }
@@ -405,9 +364,7 @@ class WallViewModel(
         val playingName = playback?.prayer
         val playing = playingName != null
         val athkar = athan.athkarPlayback.value
-        val medicine = athan.medicinePlayback.value
-        val athkarOn = athkar != null && !playing && medicine == null
-        val medicineOn = medicine != null && !playing
+        val athkarOn = athkar != null && !playing
         val mutedPrayers = audioSettings.mutedPrayers()
         val prayerOffsets = offsetStore.read()
         val prayerOffsetMinutes = PrayerOffsets.ALL.associateWith { prayerOffsets.minutesOf(it) }
@@ -457,13 +414,7 @@ class WallViewModel(
             athanPlaying = playing,
             playingName = playingName,
             athkarPlaying = athkarOn,
-            athkarCaption = if (playing || medicineOn) "" else athkar?.caption.orEmpty(),
-            medicinePlaying = medicineOn,
-            medicinePrimary = if (playing) "" else medicine?.primary.orEmpty(),
-            medicineSecondary = if (playing) "" else medicine?.secondary.orEmpty(),
-            medicineEnabled = medicineSettings.enabled(),
-            medicineVoice = medicineSettings.voice().name,
-            medicineSlots = medicineSettings.slots(),
+            athkarCaption = if (playing) "" else athkar?.caption.orEmpty(),
             cells = cells,
             twelveHour = twelveHour,
             weatherLine = weatherLine,
@@ -479,7 +430,7 @@ class WallViewModel(
             prayerClockTimes = prayerClockTimes,
             demoId = athan.demoId.value,
             nightBlackoutEnabled = settings.nightBlackout(),
-            isNightBlackout = settings.nightBlackout() && isNightBlackoutWindow(clocks.albany.hour) && !playing && !medicineOn && athan.demoId.value == null,
+            isNightBlackout = settings.nightBlackout() && isNightBlackoutWindow(clocks.albany.hour) && !playing && athan.demoId.value == null,
         )
     }
 
@@ -521,18 +472,15 @@ class WallViewModel(
     private fun maybeSchedule(day: PrayerDay, now: Instant, force: Boolean = false) {
         val playingNow = athan.playback.value != null
         val athkarNow = athan.athkarPlayback.value != null
-        val medicineNow = athan.medicinePlayback.value != null
         if (force || lastScheduledDate != day.localDate ||
             (wasPlaying && !playingNow) ||
-            (wasAthkar && !athkarNow) ||
-            (wasMedicine && !medicineNow)
+            (wasAthkar && !athkarNow)
         ) {
             athan.schedule(day, now)
             lastScheduledDate = day.localDate
         }
         wasPlaying = playingNow
         wasAthkar = athkarNow
-        wasMedicine = medicineNow
     }
 
     private fun buildCells(
@@ -606,7 +554,6 @@ class WallViewModel(
             offsetStore: OffsetStore,
             locationFixer: LocationFixer,
             audioSettings: AudioSettingsStore,
-            medicineSettings: MedicineSettingsStore,
             wallClock: WallClock,
         ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
@@ -621,7 +568,6 @@ class WallViewModel(
                         offsetStore,
                         locationFixer,
                         audioSettings,
-                        medicineSettings,
                         wallClock,
                     ) as T
                 }

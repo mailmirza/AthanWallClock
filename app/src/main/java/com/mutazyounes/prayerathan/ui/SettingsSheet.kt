@@ -83,15 +83,12 @@ import androidx.compose.ui.window.PopupProperties
 import com.mutazyounes.prayerathan.audio.AthanCatalog
 import com.mutazyounes.prayerathan.audio.AthanSoundChoice
 import com.mutazyounes.prayerathan.audio.AthanVolume
-import com.mutazyounes.prayerathan.audio.MedicineSlot
-import com.mutazyounes.prayerathan.audio.MedicineVoice
 import com.mutazyounes.prayerathan.engine.CityCatalog
 import com.mutazyounes.prayerathan.engine.PlaceCity
 import com.mutazyounes.prayerathan.engine.PlaceCountry
 import com.mutazyounes.prayerathan.engine.PrayerMethod
 import com.mutazyounes.prayerathan.engine.PrayerName
 import com.mutazyounes.prayerathan.engine.PrayerOffsets
-import java.time.DayOfWeek
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -125,9 +122,6 @@ fun SettingsSheet(
     prayerVolumes: Map<PrayerName, Int>,
     prayerOffsets: Map<PrayerName, Int>,
     prayerClockTimes: Map<PrayerName, String>,
-    medicineEnabled: Boolean,
-    medicineVoice: String,
-    medicineSlots: List<MedicineSlot>,
     nightBlackoutEnabled: Boolean,
     demoId: String?,
     onSelectLocation: (String, Double, Double, String) -> Unit,
@@ -143,11 +137,6 @@ fun SettingsSheet(
     onPrayerVolumeChange: (PrayerName, Int) -> Unit,
     onPrayerOffsetChange: (PrayerName, Int) -> Unit,
     onPlayPrayerVolumePreview: (PrayerName, Int) -> Unit,
-    onMedicineEnabledChange: (Boolean) -> Unit,
-    onMedicineVoiceChange: (MedicineVoice) -> Unit,
-    onUpsertMedicineSlot: (MedicineSlot) -> Unit,
-    onRemoveMedicineSlot: (String) -> Unit,
-    onPlayMedicineDemo: () -> Unit,
     onNightBlackoutChange: (Boolean) -> Unit,
     onPlayAthanDemo: (String) -> Unit,
     onDismiss: () -> Unit,
@@ -435,17 +424,6 @@ fun SettingsSheet(
                                 onVolumeChange = onMorningAthkarVolumeChange,
                                 onPlayPreview = onPlayMorningAthkarVolumePreview,
                             )
-                            MedicineCard(
-                                enabled = medicineEnabled,
-                                voice = MedicineVoice.fromStored(medicineVoice),
-                                slots = medicineSlots,
-                                demoId = demoId,
-                                onEnabledChange = onMedicineEnabledChange,
-                                onVoiceChange = onMedicineVoiceChange,
-                                onUpsertSlot = onUpsertMedicineSlot,
-                                onRemoveSlot = onRemoveMedicineSlot,
-                                onPlayDemo = onPlayMedicineDemo,
-                            )
                             NightBlackoutCard(
                                 nightBlackoutEnabled = nightBlackoutEnabled,
                                 onNightBlackoutChange = onNightBlackoutChange,
@@ -536,18 +514,6 @@ fun SettingsSheet(
                             onEnabledChange = onMorningAthkarEnabledChange,
                             onVolumeChange = onMorningAthkarVolumeChange,
                             onPlayPreview = onPlayMorningAthkarVolumePreview,
-                        )
-
-                        MedicineCard(
-                            enabled = medicineEnabled,
-                            voice = MedicineVoice.fromStored(medicineVoice),
-                            slots = medicineSlots,
-                            demoId = demoId,
-                            onEnabledChange = onMedicineEnabledChange,
-                            onVoiceChange = onMedicineVoiceChange,
-                            onUpsertSlot = onUpsertMedicineSlot,
-                            onRemoveSlot = onRemoveMedicineSlot,
-                            onPlayDemo = onPlayMedicineDemo,
                         )
 
                         NightBlackoutCard(
@@ -1278,7 +1244,7 @@ private fun AthkarCard(
     ModernCardContainer(
         title = "Hourly Athkar",
         icon = Icons.Default.PlayArrow,
-        subtitle = "8 AM – 10 PM · volume · Medicine wins that minute",
+        subtitle = "8 AM – 10 PM · volume",
         trailing = {
             CompactSwitch(active = athkarEnabled, onActiveChange = onAthkarEnabledChange)
         },
@@ -1415,342 +1381,6 @@ private fun MorningAthkarCard(
             }
         }
     }
-}
-
-@Composable
-private fun MedicineCard(
-    enabled: Boolean,
-    voice: MedicineVoice,
-    slots: List<MedicineSlot>,
-    demoId: String?,
-    onEnabledChange: (Boolean) -> Unit,
-    onVoiceChange: (MedicineVoice) -> Unit,
-    onUpsertSlot: (MedicineSlot) -> Unit,
-    onRemoveSlot: (String) -> Unit,
-    onPlayDemo: () -> Unit,
-) {
-    val palette = LocalWallPalette.current
-    ModernCardContainer(
-        title = "Medicine Reminder",
-        icon = Icons.Default.PlayArrow,
-        subtitle = "Spoken cue on the days and hours you pick",
-        badge = if (enabled && slots.isNotEmpty()) "${slots.size} slot${if (slots.size == 1) "" else "s"}" else null,
-        trailing = {
-            CompactSwitch(active = enabled, onActiveChange = onEnabledChange)
-        },
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            AnimatedVisibility(
-                visible = enabled,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically(),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        text = "VOICE",
-                        style = labelStyle(10.sp, palette.prayerPast),
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        MedicineVoice.entries.forEach { option ->
-                            PrayerToggleChip(
-                                title = when (option) {
-                                    MedicineVoice.ARABIC -> "Arabic"
-                                    MedicineVoice.ENGLISH -> "English"
-                                },
-                                active = voice == option,
-                                onClick = { onVoiceChange(option) },
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(InnerCardShape)
-                            .background(palette.gold.copy(alpha = 0.10f))
-                            .border(1.dp, palette.gold.copy(alpha = 0.40f), InnerCardShape)
-                            .clickable(onClick = onPlayDemo)
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = if (demoId == "medicine:preview") "Playing preview…" else "Preview voice",
-                                color = palette.clock,
-                                fontSize = 14.sp,
-                                fontFamily = EnglishFontFamily,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Text(
-                                text = voice.wallPrimary,
-                                color = palette.gold,
-                                fontSize = 13.sp,
-                                fontFamily = if (voice == MedicineVoice.ARABIC) ArabicFontFamily else EnglishFontFamily,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Preview medicine reminder",
-                            tint = palette.gold,
-                            modifier = Modifier.size(22.dp),
-                        )
-                    }
-
-                    slots.forEach { slot ->
-                        MedicineSlotEditor(
-                            slot = slot,
-                            onChange = onUpsertSlot,
-                            onRemove = { onRemoveSlot(slot.id) },
-                        )
-                    }
-
-                    if (slots.size < MedicineSlot.MAX_SLOTS) {
-                        Text(
-                            text = "+ Add time",
-                            color = palette.gold,
-                            fontSize = 13.sp,
-                            fontFamily = EnglishFontFamily,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(InnerCardShape)
-                                .border(1.dp, palette.gold.copy(alpha = 0.45f), InnerCardShape)
-                                .clickable {
-                                    onUpsertSlot(MedicineSlot.create())
-                                }
-                                .padding(vertical = 12.dp),
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-
-                    if (slots.isEmpty()) {
-                        Text(
-                            text = "Add at least one time so the reminder can fire.",
-                            color = palette.prayerPast.copy(alpha = 0.85f),
-                            fontSize = 12.sp,
-                            fontFamily = EnglishFontFamily,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MedicineSlotEditor(
-    slot: MedicineSlot,
-    onChange: (MedicineSlot) -> Unit,
-    onRemove: () -> Unit,
-) {
-    val palette = LocalWallPalette.current
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(InnerCardShape)
-            .background(palette.settingsPanel.copy(alpha = 0.55f))
-            .border(1.dp, palette.hairline.copy(alpha = 0.30f), InnerCardShape)
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                text = SettingsTime.clock12(slot.hour, slot.minute),
-                style = tabularStyle(palette.clock, 22.sp, FontWeight.Bold),
-            )
-            Text(
-                text = "Remove",
-                color = palette.prayerPast,
-                fontSize = 12.sp,
-                fontFamily = EnglishFontFamily,
-                modifier = Modifier
-                    .clip(ChipShape)
-                    .clickable(onClick = onRemove)
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-            )
-        }
-
-        MedicineClockWheels(
-            hour = slot.hour,
-            minute = slot.minute,
-            onChange = { hour, minute -> onChange(slot.copy(hour = hour, minute = minute)) },
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            MEDICINE_DAY_ORDER.forEach { day ->
-                val active = day in slot.days
-                PrayerToggleChip(
-                    title = dayShort(day),
-                    active = active,
-                    onClick = {
-                        val next = if (active) slot.days - day else slot.days + day
-                        if (next.isNotEmpty()) onChange(slot.copy(days = next))
-                    },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun MedicineClockWheels(
-    hour: Int,
-    minute: Int,
-    onChange: (Int, Int) -> Unit,
-) {
-    val palette = LocalWallPalette.current
-    val hour12 = SettingsTime.hour12(hour)
-    val isAm = SettingsTime.isAm(hour)
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        WheelStepper(
-            valueLabel = hour12.toString(),
-            onUp = {
-                onChange(SettingsTime.hour24(SettingsTime.wrapHour12(hour12 + 1), isAm), minute)
-            },
-            onDown = {
-                onChange(SettingsTime.hour24(SettingsTime.wrapHour12(hour12 - 1), isAm), minute)
-            },
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            text = ":",
-            color = palette.gold,
-            fontSize = 22.sp,
-            fontFamily = EnglishFontFamily,
-            fontWeight = FontWeight.Bold,
-        )
-        WheelStepper(
-            valueLabel = String.format(Locale.US, "%02d", minute),
-            onUp = {
-                onChange(hour, SettingsTime.wrapMinute(minute + 1))
-            },
-            onDown = {
-                onChange(hour, SettingsTime.wrapMinute(minute - 1))
-            },
-            modifier = Modifier.weight(1f),
-        )
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            AmPmChip(
-                title = "AM",
-                active = isAm,
-                onClick = { onChange(SettingsTime.hour24(hour12, true), minute) },
-            )
-            AmPmChip(
-                title = "PM",
-                active = !isAm,
-                onClick = { onChange(SettingsTime.hour24(hour12, false), minute) },
-            )
-        }
-    }
-}
-
-@Composable
-private fun WheelStepper(
-    valueLabel: String,
-    onUp: () -> Unit,
-    onDown: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val palette = LocalWallPalette.current
-    Column(
-        modifier = modifier
-            .clip(InnerCardShape)
-            .background(palette.backgroundDeep.copy(alpha = 0.55f))
-            .border(1.dp, palette.gold.copy(alpha = 0.28f), InnerCardShape)
-            .padding(vertical = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        WheelTick(label = "▲", onClick = onUp)
-        Text(
-            text = valueLabel,
-            style = tabularStyle(palette.clock, 26.sp, FontWeight.Bold),
-            modifier = Modifier.padding(vertical = 2.dp),
-        )
-        WheelTick(label = "▼", onClick = onDown)
-    }
-}
-
-@Composable
-private fun WheelTick(
-    label: String,
-    onClick: () -> Unit,
-) {
-    val palette = LocalWallPalette.current
-    Text(
-        text = label,
-        color = palette.gold,
-        fontSize = 12.sp,
-        fontFamily = EnglishFontFamily,
-        modifier = Modifier
-            .clip(ChipShape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-    )
-}
-
-@Composable
-private fun AmPmChip(
-    title: String,
-    active: Boolean,
-    onClick: () -> Unit,
-) {
-    val palette = LocalWallPalette.current
-    Text(
-        text = title,
-        color = if (active) palette.settingsPanel else palette.gold,
-        fontSize = 12.sp,
-        fontFamily = EnglishFontFamily,
-        fontWeight = FontWeight.Bold,
-        textAlign = TextAlign.Center,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(ChipShape)
-            .background(if (active) palette.gold else palette.gold.copy(alpha = 0.12f))
-            .clickable(onClick = onClick)
-            .padding(vertical = 8.dp),
-    )
-}
-
-private val MEDICINE_DAY_ORDER = listOf(
-    DayOfWeek.SUNDAY,
-    DayOfWeek.MONDAY,
-    DayOfWeek.TUESDAY,
-    DayOfWeek.WEDNESDAY,
-    DayOfWeek.THURSDAY,
-    DayOfWeek.FRIDAY,
-    DayOfWeek.SATURDAY,
-)
-
-private fun dayShort(day: DayOfWeek): String = when (day) {
-    DayOfWeek.SUNDAY -> "Su"
-    DayOfWeek.MONDAY -> "Mo"
-    DayOfWeek.TUESDAY -> "Tu"
-    DayOfWeek.WEDNESDAY -> "We"
-    DayOfWeek.THURSDAY -> "Th"
-    DayOfWeek.FRIDAY -> "Fr"
-    DayOfWeek.SATURDAY -> "Sa"
 }
 
 @Composable

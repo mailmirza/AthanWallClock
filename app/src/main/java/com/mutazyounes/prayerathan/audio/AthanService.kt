@@ -53,7 +53,6 @@ class AthanService : Service() {
         val app = application as PrayerAthanApp
         val now = app.wallClock.now()
         app.athanController.stopAthkar()
-        app.athanController.stopMedicine()
         app.athanController.markDemo(null)
         app.athanController.markPlaying(prayer, now)
         startInForeground(prayer, liveAthan = true)
@@ -76,7 +75,6 @@ class AthanService : Service() {
         startInForeground(PrayerName.DHUHR, liveAthan = false)
         val app = application as PrayerAthanApp
         app.athanController.stopAthkar()
-        app.athanController.stopMedicine()
         app.athanController.markIdle()
         app.athanController.markDemo(intent.getStringExtra(EXTRA_DEMO_KEY) ?: choice.id)
         val volumePercent = intent.getIntExtra(EXTRA_VOLUME, AthanVolume.DEFAULT)

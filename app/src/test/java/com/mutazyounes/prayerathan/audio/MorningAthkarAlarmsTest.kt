@@ -1,6 +1,5 @@
 package com.mutazyounes.prayerathan.audio
 
-import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -80,59 +79,33 @@ class MorningAthkarAlarmsTest {
     }
 
     @Test
-    fun skipsSlotWhenMedicineOwnsThatMinute() {
-        val slot = MedicineSlot(
-            id = "am",
-            hour = 8,
-            minute = 5,
-            days = setOf(DayOfWeek.THURSDAY),
-        )
-        val slots = remainingMorningAthkarAlarms(
-            now = at(7, 0),
-            zone = zone,
-            clipCount = 6,
-            medicineSlots = listOf(slot),
-        )
-        assertFalse(slots.any { it.index == 0 })
-        assertTrue(slots.any { it.index == 1 })
-    }
-
-    @Test
-    fun yieldsToAthanAndMedicine() {
+    fun yieldsToAthan() {
         assertFalse(
             shouldPlayMorningAthkar(
                 morningEnabled = true,
                 athanPlaying = true,
-                medicinePlaying = false,
                 athanMinute = false,
-                medicineDue = false,
             ),
         )
         assertFalse(
             shouldPlayMorningAthkar(
                 morningEnabled = true,
                 athanPlaying = false,
-                medicinePlaying = false,
-                athanMinute = false,
-                medicineDue = true,
+                athanMinute = true,
             ),
         )
         assertFalse(
             shouldPlayMorningAthkar(
                 morningEnabled = false,
                 athanPlaying = false,
-                medicinePlaying = false,
                 athanMinute = false,
-                medicineDue = false,
             ),
         )
         assertTrue(
             shouldPlayMorningAthkar(
                 morningEnabled = true,
                 athanPlaying = false,
-                medicinePlaying = false,
                 athanMinute = false,
-                medicineDue = false,
             ),
         )
     }

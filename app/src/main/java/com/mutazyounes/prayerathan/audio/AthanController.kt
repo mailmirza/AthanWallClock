@@ -20,12 +20,6 @@ data class AthkarPlayback(
     val startedAt: Instant,
 )
 
-data class MedicinePlayback(
-    val primary: String,
-    val secondary: String,
-    val startedAt: Instant,
-)
-
 interface AthanController {
     fun schedule(day: PrayerDay, now: Instant)
     fun stop()
@@ -37,10 +31,8 @@ interface AthanController {
     fun playAthkarDemo(clip: AthkarClip)
     fun playHourlyAthkarDemo(volumePercent: Int = AthanVolume.DEFAULT)
     fun playMorningAthkarDemo(volumePercent: Int = AthanVolume.DEFAULT)
-    fun playMedicineDemo()
     val playback: StateFlow<AthanPlayback?>
     val athkarPlayback: StateFlow<AthkarPlayback?>
-    val medicinePlayback: StateFlow<MedicinePlayback?>
     val demoId: StateFlow<String?>
 }
 
@@ -52,17 +44,13 @@ class DefaultAthanController(
     private val scheduler = AthanScheduler(appContext)
     private val athkarScheduler = AthkarScheduler(appContext)
     private val morningAthkarScheduler = MorningAthkarScheduler(appContext)
-    private val medicineScheduler = MedicineScheduler(appContext)
     private val audioSettings = AudioSettingsStore(appContext)
-    private val medicineSettings = MedicineSettingsStore(appContext)
     private val _playback = MutableStateFlow<AthanPlayback?>(null)
     private val _athkarPlayback = MutableStateFlow<AthkarPlayback?>(null)
-    private val _medicinePlayback = MutableStateFlow<MedicinePlayback?>(null)
     private val _demoId = MutableStateFlow<String?>(null)
 
     override val playback: StateFlow<AthanPlayback?> = _playback.asStateFlow()
     override val athkarPlayback: StateFlow<AthkarPlayback?> = _athkarPlayback.asStateFlow()
-    override val medicinePlayback: StateFlow<MedicinePlayback?> = _medicinePlayback.asStateFlow()
     override val demoId: StateFlow<String?> = _demoId.asStateFlow()
 
     override fun schedule(day: PrayerDay, now: Instant) {
@@ -77,21 +65,14 @@ class DefaultAthanController(
         } else {
             morningAthkarScheduler.cancelAll()
         }
-        if (medicineSettings.enabled() && medicineSettings.slots().isNotEmpty()) {
-            medicineScheduler.schedule(now, zone())
-        } else {
-            medicineScheduler.cancelAll()
-        }
     }
 
     override fun stop() {
         val athanOn = _playback.value != null
         val athkarOn = _athkarPlayback.value != null
-        val medicineOn = _medicinePlayback.value != null
         val demoOn = _demoId.value != null
         markIdle()
         markAthkarIdle()
-        markMedicineIdle()
         markDemo(null)
         if (athanOn || demoOn) {
             try {
@@ -105,12 +86,6 @@ class DefaultAthanController(
             } catch (_: IllegalStateException) {
             }
         }
-        if (medicineOn || demoOn) {
-            try {
-                appContext.startService(MedicineService.stopIntent(appContext))
-            } catch (_: IllegalStateException) {
-            }
-        }
     }
 
     override fun playAthanDemo(
@@ -119,7 +94,6 @@ class DefaultAthanController(
         demoKey: String,
     ) {
         stopAthkar()
-        stopMedicine()
         markIdle()
         markDemo(demoKey)
         appContext.startForegroundService(
@@ -128,7 +102,6 @@ class DefaultAthanController(
     }
 
     override fun playAthkarDemo(clip: AthkarClip) {
-        stopMedicine()
         try {
             appContext.startService(AthanService.stopIntent(appContext))
         } catch (_: IllegalStateException) {
@@ -139,7 +112,6 @@ class DefaultAthanController(
     }
 
     override fun playHourlyAthkarDemo(volumePercent: Int) {
-        stopMedicine()
         try {
             appContext.startService(AthanService.stopIntent(appContext))
         } catch (_: IllegalStateException) {
@@ -152,7 +124,6 @@ class DefaultAthanController(
     }
 
     override fun playMorningAthkarDemo(volumePercent: Int) {
-        stopMedicine()
         try {
             appContext.startService(AthanService.stopIntent(appContext))
         } catch (_: IllegalStateException) {
@@ -162,17 +133,6 @@ class DefaultAthanController(
         appContext.startForegroundService(
             AthkarService.morningDemoIntent(appContext, volumePercent),
         )
-    }
-
-    override fun playMedicineDemo() {
-        stopAthkar()
-        try {
-            appContext.startService(AthanService.stopIntent(appContext))
-        } catch (_: IllegalStateException) {
-        }
-        markIdle()
-        markDemo(MedicineService.DEMO_ID)
-        appContext.startForegroundService(MedicineService.demoIntent(appContext))
     }
 
     fun stopAthkar() {
@@ -185,19 +145,8 @@ class DefaultAthanController(
         }
     }
 
-    fun stopMedicine() {
-        val medicineOn = _medicinePlayback.value != null
-        markMedicineIdle()
-        if (!medicineOn) return
-        try {
-            appContext.startService(MedicineService.stopIntent(appContext))
-        } catch (_: IllegalStateException) {
-        }
-    }
-
     fun markPlaying(prayer: PrayerName, startedAt: Instant) {
         if (prayer == PrayerName.SUNRISE) return
-        stopMedicine()
         _playback.value = AthanPlayback(prayer, startedAt)
     }
 
@@ -211,14 +160,6 @@ class DefaultAthanController(
 
     fun markAthkarIdle() {
         _athkarPlayback.value = null
-    }
-
-    fun markMedicinePlaying(primary: String, secondary: String, startedAt: Instant) {
-        _medicinePlayback.value = MedicinePlayback(primary, secondary, startedAt)
-    }
-
-    fun markMedicineIdle() {
-        _medicinePlayback.value = null
     }
 
     fun markDemo(id: String?) {

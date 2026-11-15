@@ -15,15 +15,12 @@ class MorningAthkarScheduler(
     fun schedule(day: PrayerDay, now: Instant, zone: ZoneId) {
         cancelAll()
         val clock = (context.applicationContext as PrayerAthanApp).wallClock
-        val medicine = MedicineSettingsStore(context)
-        val slots = if (medicine.enabled()) medicine.slots() else emptyList()
         val athanTimes = athanInstants(day)
         for (slot in remainingMorningAthkarAlarms(
             now = now,
             zone = zone,
             clipCount = MorningAthkarClip.count,
             athanTimes = athanTimes,
-            medicineSlots = slots,
         )) {
             alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,

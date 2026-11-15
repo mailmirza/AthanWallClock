@@ -53,28 +53,13 @@ class AthkarService : Service() {
         val day = app.prayerEngine.day(now, location)
         val zone = ZoneId.of(location.timeZoneId)
         startInForeground(getString(R.string.athkar_playing_title))
-        val medicineSettings = MedicineSettingsStore(this)
-        val medicineDue = athkarYieldsToMedicine(
-            medicineSettings.enabled(),
-            medicineSettings.slots(),
-            now,
-            zone,
-        )
         val athanPlaying = app.athanController.playback.value != null
         val athanMinute = isAthanMinute(athanInstants(day), now, zone)
-        if (shouldStartMedicineFromAthkar(medicineDue, athanPlaying, athanMinute)) {
-            startForegroundService(MedicineService.playIntent(this))
-            app.athanController.schedule(day, now)
-            stopPlayback()
-            return
-        }
         if (!shouldPlayAthkar(
                 athkarEnabled = AudioSettingsStore(this).athkarEnabled(),
                 inWindow = isAthkarWindow(day, now, zone),
                 athanPlaying = athanPlaying,
-                medicinePlaying = app.athanController.medicinePlayback.value != null,
                 athanMinute = athanMinute,
-                medicineDue = medicineDue,
             )
         ) {
             app.athanController.schedule(day, now)
@@ -119,27 +104,12 @@ class AthkarService : Service() {
         val zone = ZoneId.of(location.timeZoneId)
         startInForeground(getString(R.string.athkar_playing_title))
         val index = intent.getIntExtra(EXTRA_INDEX, -1)
-        val medicineSettings = MedicineSettingsStore(this)
-        val medicineDue = athkarYieldsToMedicine(
-            medicineSettings.enabled(),
-            medicineSettings.slots(),
-            now,
-            zone,
-        )
         val athanPlaying = app.athanController.playback.value != null
         val athanMinute = isAthanMinute(athanInstants(day), now, zone)
-        if (shouldStartMedicineFromAthkar(medicineDue, athanPlaying, athanMinute)) {
-            startForegroundService(MedicineService.playIntent(this))
-            app.athanController.schedule(day, now)
-            stopPlayback()
-            return
-        }
         if (!shouldPlayMorningAthkar(
                 morningEnabled = AudioSettingsStore(this).morningAthkarEnabled(),
                 athanPlaying = athanPlaying,
-                medicinePlaying = app.athanController.medicinePlayback.value != null,
                 athanMinute = athanMinute,
-                medicineDue = medicineDue,
             ) || index !in 0 until MorningAthkarClip.count
         ) {
             app.athanController.schedule(day, now)

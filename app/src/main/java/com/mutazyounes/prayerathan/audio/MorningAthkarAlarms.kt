@@ -27,41 +27,34 @@ internal fun remainingMorningAthkarAlarms(
     zone: ZoneId,
     clipCount: Int = MorningAthkarClip.count,
     athanTimes: List<Instant> = emptyList(),
-    medicineSlots: List<MedicineSlot> = emptyList(),
 ): List<MorningAthkarSlot> {
     if (clipCount <= 0) return emptyList()
     val today = now.atZone(zone).toLocalDate()
-    val todaySlots = morningSlotsForDate(today, zone, clipCount, athanTimes, medicineSlots)
+    val todaySlots = morningSlotsForDate(today, zone, clipCount, athanTimes)
         .filter { it.at.isAfter(now) }
     if (todaySlots.isNotEmpty()) return todaySlots
     val tomorrow = today.plusDays(1)
-    return morningSlotsForDate(tomorrow, zone, clipCount, athanTimes, medicineSlots)
+    return morningSlotsForDate(tomorrow, zone, clipCount, athanTimes)
         .filter { it.at.isAfter(now) }
 }
 
 internal fun shouldPlayMorningAthkar(
     morningEnabled: Boolean,
     athanPlaying: Boolean,
-    medicinePlaying: Boolean,
     athanMinute: Boolean,
-    medicineDue: Boolean,
 ): Boolean = morningEnabled &&
     !athanPlaying &&
-    !medicinePlaying &&
-    !athanMinute &&
-    !medicineDue
+    !athanMinute
 
 private fun morningSlotsForDate(
     date: LocalDate,
     zone: ZoneId,
     clipCount: Int,
     athanTimes: List<Instant>,
-    medicineSlots: List<MedicineSlot>,
 ): List<MorningAthkarSlot> {
     return morningAthkarLocalTimes(clipCount).mapIndexedNotNull { index, localTime ->
         val at = date.atTime(localTime).atZone(zone).toInstant()
         if (isAthanMinute(athanTimes, at, zone)) return@mapIndexedNotNull null
-        if (isMedicineMinute(medicineSlots, at, zone, graceMinutes = 0)) return@mapIndexedNotNull null
         MorningAthkarSlot(at = at, index = index)
     }
 }

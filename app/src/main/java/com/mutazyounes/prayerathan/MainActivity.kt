@@ -66,18 +66,15 @@ class MainActivity : ComponentActivity() {
                     app.offsetStore,
                     app.locationFixer,
                     app.audioSettings,
-                    app.medicineSettings,
                     app.wallClock,
                 ),
             )
             val athanPlaying by app.athanController.playback.collectAsState()
             val athkarPlaying by app.athanController.athkarPlayback.collectAsState()
-            val medicinePlaying by app.athanController.medicinePlayback.collectAsState()
             val demoId by app.athanController.demoId.collectAsState()
             var hadAthan by remember { mutableStateOf(false) }
             val alarmAudio = athanPlaying != null ||
                 athkarPlaying != null ||
-                medicinePlaying != null ||
                 demoId != null
             LaunchedEffect(athanPlaying) {
                 if (athanPlaying != null) {
@@ -149,7 +146,6 @@ class MainActivity : ComponentActivity() {
         val controller = (application as PrayerAthanApp).athanController
         return controller.playback.value != null ||
             controller.athkarPlayback.value != null ||
-            controller.medicinePlayback.value != null ||
             controller.demoId.value != null
     }
 

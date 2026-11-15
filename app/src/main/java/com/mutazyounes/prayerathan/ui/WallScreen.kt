@@ -146,9 +146,6 @@ fun WallScreen(
                     prayerVolumes = state.prayerVolumes,
                     prayerOffsets = state.prayerOffsets,
                     prayerClockTimes = state.prayerClockTimes,
-                    medicineEnabled = state.medicineEnabled,
-                    medicineVoice = state.medicineVoice,
-                    medicineSlots = state.medicineSlots,
                     nightBlackoutEnabled = state.nightBlackoutEnabled,
                     demoId = state.demoId,
                     onSelectLocation = { label, lat, lon, zone ->
@@ -168,11 +165,6 @@ fun WallScreen(
                     onPrayerVolumeChange = viewModel::setPrayerVolume,
                     onPrayerOffsetChange = viewModel::setPrayerOffset,
                     onPlayPrayerVolumePreview = viewModel::playPrayerVolumePreview,
-                    onMedicineEnabledChange = viewModel::setMedicineEnabled,
-                    onMedicineVoiceChange = viewModel::setMedicineVoice,
-                    onUpsertMedicineSlot = viewModel::upsertMedicineSlot,
-                    onRemoveMedicineSlot = viewModel::removeMedicineSlot,
-                    onPlayMedicineDemo = viewModel::playMedicineDemo,
                     onNightBlackoutChange = viewModel::setNightBlackout,
                     onPlayAthanDemo = viewModel::playAthanDemo,
                     onDismiss = {
@@ -200,7 +192,7 @@ fun WallScreen(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                     onClick = {
-                        if (state.athanPlaying || state.athkarPlaying || state.medicinePlaying) {
+                        if (state.athanPlaying || state.athkarPlaying) {
                             onStopAthan()
                         }
                     },
@@ -217,16 +209,6 @@ fun WallScreen(
                     PortraitStackedWall(state, type, inset, onOpenSettings)
                 } else {
                     LandscapeStackedWall(state, type, inset, onOpenSettings)
-                }
-                if (state.medicinePlaying) {
-                    MedicineReminderBanner(
-                        primary = state.medicinePrimary,
-                        secondary = state.medicineSecondary,
-                        type = type,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = inset + 12.dp),
-                    )
                 }
             } else if (portrait) {
                 PortraitWall(state, type, inset, onOpenSettings)

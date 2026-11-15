@@ -25,26 +25,12 @@ class MorningAthkarAlarmReceiver : BroadcastReceiver() {
         val location = app.prayerEngine.location()
         val day = app.prayerEngine.day(now, location)
         val zone = ZoneId.of(location.timeZoneId)
-        val medicineSettings = MedicineSettingsStore(app)
-        val medicineDue = athkarYieldsToMedicine(
-            medicineSettings.enabled(),
-            medicineSettings.slots(),
-            now,
-            zone,
-        )
         val athanPlaying = app.athanController.playback.value != null
         val athanMinute = isAthanMinute(athanInstants(day), now, zone)
-        if (shouldStartMedicineFromAthkar(medicineDue, athanPlaying, athanMinute)) {
-            context.startForegroundService(MedicineService.playIntent(context))
-            reschedule(app, day, now)
-            return
-        }
         if (!shouldPlayMorningAthkar(
                 morningEnabled = true,
                 athanPlaying = athanPlaying,
-                medicinePlaying = app.athanController.medicinePlayback.value != null,
                 athanMinute = athanMinute,
-                medicineDue = medicineDue,
             )
         ) {
             reschedule(app, day, now)
