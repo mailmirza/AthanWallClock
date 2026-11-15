@@ -1,5 +1,7 @@
 package com.mutazyounes.prayerathan.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -55,6 +57,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -84,6 +87,7 @@ import androidx.compose.ui.window.PopupProperties
 import com.mutazyounes.prayerathan.audio.AthanCatalog
 import com.mutazyounes.prayerathan.audio.AthanSoundChoice
 import com.mutazyounes.prayerathan.audio.AthanVolume
+import com.mutazyounes.prayerathan.audio.CustomAthan
 import com.mutazyounes.prayerathan.engine.AsrSchool
 import com.mutazyounes.prayerathan.engine.CalcMethod
 import com.mutazyounes.prayerathan.engine.CityCatalog
@@ -95,6 +99,7 @@ import com.mutazyounes.prayerathan.engine.PrayerOffsets
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
@@ -117,6 +122,7 @@ fun SettingsSheet(
     longitude: String,
     locationError: String?,
     athanSoundId: String,
+    customAthanTitle: String,
     athkarEnabled: Boolean,
     athkarVolume: Int,
     morningAthkarEnabled: Boolean,
@@ -132,6 +138,7 @@ fun SettingsSheet(
     onSelectLocation: (String, Double, Double, String) -> Unit,
     onUseGps: () -> Unit,
     onSelectAthanSound: (String) -> Unit,
+    onCustomAthanImported: (String) -> Unit,
     onAthkarEnabledChange: (Boolean) -> Unit,
     onAthkarVolumeChange: (Int) -> Unit,
     onPlayAthkarVolumePreview: (Int) -> Unit,
@@ -417,8 +424,10 @@ fun SettingsSheet(
                             )
                             AthanSoundCard(
                                 athanSoundId = athanSoundId,
+                                customAthanTitle = customAthanTitle,
                                 demoId = demoId,
                                 onSelectAthanSound = onSelectAthanSound,
+                                onCustomAthanImported = onCustomAthanImported,
                                 onPlayAthanDemo = onPlayAthanDemo,
                             )
                             AthkarCard(
@@ -513,8 +522,10 @@ fun SettingsSheet(
 
                         AthanSoundCard(
                             athanSoundId = athanSoundId,
+                            customAthanTitle = customAthanTitle,
                             demoId = demoId,
                             onSelectAthanSound = onSelectAthanSound,
+                            onCustomAthanImported = onCustomAthanImported,
                             onPlayAthanDemo = onPlayAthanDemo,
                         )
 
@@ -1182,25 +1193,86 @@ private fun PrayerToggleChip(
 @Composable
 private fun AthanSoundCard(
     athanSoundId: String,
+    customAthanTitle: String,
     demoId: String?,
     onSelectAthanSound: (String) -> Unit,
+    onCustomAthanImported: (String) -> Unit,
     onPlayAthanDemo: (String) -> Unit,
 ) {
-    val current = AthanCatalog.choice(athanSoundId)
+    val palette = LocalWallPalette.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var importError by remember { mutableStateOf<String?>(null) }
+    var importing by remember { mutableStateOf(false) }
+    val hasCustom = customAthanTitle.isNotBlank()
+    val customSelected = athanSoundId == CustomAthan.ID && hasCustom
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            importing = true
+            importError = null
+            scope.launch {
+                val title = withContext(Dispatchers.IO) {
+                    CustomAthan.import(context.applicationContext, uri)
+                }
+                importing = false
+                if (title == null) {
+                    importError = "That file could not be used. Pick an MP3 or other audio file under 30 MB."
+                } else {
+                    onCustomAthanImported(title)
+                }
+            }
+        }
+    }
+    val pickFile = { picker.launch(arrayOf("audio/*")) }
     ModernCardContainer(
         title = "Athan Sound",
         icon = Icons.Default.PlayArrow,
         subtitle = "Audio recitation on prayer start",
-        badge = current.title,
+        badge = if (customSelected) "Your own file" else AthanCatalog.choice(athanSoundId).title,
     ) {
-        AthanCatalog.all.forEach { choice ->
-            ModernSoundItem(
-                choice = choice,
-                selected = choice.id == athanSoundId,
-                playing = demoId == choice.id,
-                onSelect = { onSelectAthanSound(choice.id) },
-                onPlay = { onPlayAthanDemo(choice.id) },
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            AthanCatalog.all.forEach { choice ->
+                ModernSoundItem(
+                    choice = choice,
+                    selected = !customSelected && choice.id == AthanCatalog.choice(athanSoundId).id,
+                    playing = demoId == choice.id,
+                    onSelect = { onSelectAthanSound(choice.id) },
+                    onPlay = { onPlayAthanDemo(choice.id) },
+                )
+            }
+            if (hasCustom) {
+                ModernSoundItem(
+                    choice = AthanSoundChoice(
+                        id = CustomAthan.ID,
+                        title = customAthanTitle,
+                        subtitle = "Your own file · all five prayers",
+                        rawRes = 0,
+                    ),
+                    selected = customSelected,
+                    playing = demoId == CustomAthan.ID,
+                    onSelect = { onSelectAthanSound(CustomAthan.ID) },
+                    onPlay = { onPlayAthanDemo(CustomAthan.ID) },
+                )
+            }
+            ModernActionButton(
+                title = when {
+                    importing -> "Copying file…"
+                    hasCustom -> "Choose a different file"
+                    else -> "Use your own audio file"
+                },
+                icon = Icons.Default.Search,
+                onClick = { if (!importing) pickFile() },
+                modifier = Modifier.fillMaxWidth(),
             )
+            val error = importError
+            if (error != null) {
+                Text(
+                    text = error,
+                    color = palette.gold,
+                    fontSize = 12.sp,
+                    fontFamily = EnglishFontFamily,
+                )
+            }
         }
     }
 }

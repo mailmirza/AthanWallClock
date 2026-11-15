@@ -7,6 +7,7 @@ import com.mutazyounes.prayerathan.audio.AthanController
 import com.mutazyounes.prayerathan.audio.AthanVolume
 import com.mutazyounes.prayerathan.audio.AthkarClip
 import com.mutazyounes.prayerathan.audio.AudioSettingsStore
+import com.mutazyounes.prayerathan.audio.CustomAthan
 import com.mutazyounes.prayerathan.engine.AsrSchool
 import com.mutazyounes.prayerathan.engine.CalcMethod
 import com.mutazyounes.prayerathan.engine.CityCatalog
@@ -135,6 +136,14 @@ class WallViewModel(
 
     fun setAthanSound(id: String) {
         audioSettings.setSoundId(id)
+        refresh(now())
+    }
+
+    /** Called once the picked file has been copied into app storage. */
+    fun useCustomAthan(title: String) {
+        athan.stop()
+        audioSettings.setCustomAthanTitle(title)
+        audioSettings.setSoundId(CustomAthan.ID)
         refresh(now())
     }
 
@@ -440,6 +449,7 @@ class WallViewModel(
             weatherLine = weatherLine,
             weatherCondition = weatherCondition,
             athanSoundId = audioSettings.soundId(),
+            customAthanTitle = audioSettings.customAthanTitle(),
             athkarEnabled = audioSettings.athkarEnabled(),
             athkarVolume = audioSettings.athkarVolume(),
             morningAthkarEnabled = audioSettings.morningAthkarEnabled(),

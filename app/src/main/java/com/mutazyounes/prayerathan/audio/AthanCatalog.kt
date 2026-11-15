@@ -44,7 +44,14 @@ class AudioSettingsStore(
         prefs.getString(KEY_SOUND, AthanCatalog.DEFAULT_ID) ?: AthanCatalog.DEFAULT_ID
 
     fun setSoundId(id: String) {
-        prefs.edit().putString(KEY_SOUND, AthanCatalog.choice(id).id).apply()
+        val stored = if (id == CustomAthan.ID) id else AthanCatalog.choice(id).id
+        prefs.edit().putString(KEY_SOUND, stored).apply()
+    }
+
+    fun customAthanTitle(): String = prefs.getString(KEY_CUSTOM_TITLE, "").orEmpty()
+
+    fun setCustomAthanTitle(title: String) {
+        prefs.edit().putString(KEY_CUSTOM_TITLE, title).apply()
     }
 
     fun athkarEnabled(): Boolean = prefs.getBoolean(KEY_ATHKAR, false)
@@ -109,6 +116,7 @@ class AudioSettingsStore(
     companion object {
         private const val PREFS = "prayerathan_audio"
         private const val KEY_SOUND = "athan_sound"
+        private const val KEY_CUSTOM_TITLE = "custom_athan_title"
         private const val KEY_ATHKAR = "athkar_enabled"
         private const val KEY_ATHKAR_VOLUME = "athkar_volume"
         private const val KEY_MORNING_ATHKAR = "morning_athkar_enabled"

@@ -19,6 +19,10 @@ class AthanPlayer(
             onError()
             return
         }
+        if (store.soundId() == CustomAthan.ID && CustomAthan.exists(context)) {
+            playCustom(onComplete, onError, store.prayerVolume(prayer))
+            return
+        }
         playRaw(
             AthanCatalog.rawRes(prayer),
             onComplete,
@@ -27,11 +31,40 @@ class AthanPlayer(
         )
     }
 
+    /** The user's own file. Falls back to the bundled athan if it will not play. */
+    fun playCustom(
+        onComplete: () -> Unit,
+        onError: () -> Unit,
+        volumePercent: Int = AthanVolume.DEFAULT,
+    ) {
+        val path = CustomAthan.file(context).absolutePath
+        start(
+            onComplete = onComplete,
+            onError = {
+                playRaw(AthanCatalog.all.first().rawRes, onComplete, onError, volumePercent)
+            },
+            volumePercent = volumePercent,
+        ) { it.setDataSource(path) }
+    }
+
     fun playRaw(
         resId: Int,
         onComplete: () -> Unit,
         onError: () -> Unit,
         volumePercent: Int = AthanVolume.DEFAULT,
+    ) {
+        start(onComplete, onError, volumePercent) { next ->
+            val afd = context.resources.openRawResourceFd(resId)
+            next.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+            afd.close()
+        }
+    }
+
+    private fun start(
+        onComplete: () -> Unit,
+        onError: () -> Unit,
+        volumePercent: Int,
+        setSource: (MediaPlayer) -> Unit,
     ) {
         stop()
         val next = MediaPlayer()
@@ -45,9 +78,7 @@ class AthanPlayer(
             )
             routeToBuiltinSpeaker(next)
             next.setWakeMode(context, PowerManager.PARTIAL_WAKE_LOCK)
-            val afd = context.resources.openRawResourceFd(resId)
-            next.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
-            afd.close()
+            setSource(next)
             next.setOnCompletionListener { onComplete() }
             next.setOnErrorListener { _, _, _ ->
                 onError()

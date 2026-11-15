@@ -66,8 +66,9 @@ class AthanService : Service() {
 
     private fun startDemo(intent: Intent) {
         val soundId = intent.getStringExtra(EXTRA_SOUND_ID)
+        val custom = soundId == CustomAthan.ID && CustomAthan.exists(this)
         val choice = soundId?.let { AthanCatalog.byId(it) }
-        if (choice == null) {
+        if (choice == null && !custom) {
             startInForeground(PrayerName.DHUHR, liveAthan = false)
             stopPlayback()
             return
@@ -76,8 +77,18 @@ class AthanService : Service() {
         val app = application as PrayerAthanApp
         app.athanController.stopAthkar()
         app.athanController.markIdle()
-        app.athanController.markDemo(intent.getStringExtra(EXTRA_DEMO_KEY) ?: choice.id)
+        app.athanController.markDemo(
+            intent.getStringExtra(EXTRA_DEMO_KEY) ?: choice?.id ?: CustomAthan.ID,
+        )
         val volumePercent = intent.getIntExtra(EXTRA_VOLUME, AthanVolume.DEFAULT)
+        if (choice == null) {
+            player.playCustom(
+                onComplete = { stopPlayback() },
+                onError = { stopPlayback() },
+                volumePercent = volumePercent,
+            )
+            return
+        }
         player.playRaw(
             resId = choice.rawRes,
             onComplete = { stopPlayback() },
