@@ -24,15 +24,23 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.mutazyounes.prayerathan"
+        applicationId = "com.mailmirza.athanwallclock"
         minSdk = 26
         targetSdk = 36
-        versionCode = 44
-        versionName = "0.44.0"
+        versionCode = 1
+        versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
+        // Shared debug key checked into the repo so every CI build is signed
+        // the same way and installs over the previous one. Debug only.
+        getByName("debug") {
+            storeFile = rootProject.file("keystore/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         if (keystorePropertiesFile.exists()) {
             create("release") {
                 storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))

@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "PrayerAthan"
+rootProject.name = "AthanWallClock"
 include(":app")
