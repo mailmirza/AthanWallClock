@@ -100,6 +100,7 @@ class MainActivity : ComponentActivity() {
             ) {
                 WallScreen(
                     viewModel = wallViewModel,
+                    smartHome = app.smartHome,
                     modifier = Modifier.fillMaxSize(),
                 )
             }

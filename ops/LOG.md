@@ -2,6 +2,7 @@
 
 Append one line per event. Newest at the top.
 
+- 2026-11-17 Kashif: Home controls panel (branch `phase2-smart-panel`). WiZ lights on the back of the wall: flip by bulb button or sideways swipe, tiles toggle, per-bulb brightness/white/colour/scenes, setup by Wi-Fi search or IP. Clock returns after 30 s idle (2 min in setup) and at once when an Athan starts. Off by default (Settings → Home Controls). Protocol ported from MyHome TV `Wiz.java` into `smarthome/`.
 - 2026-10-08 Mutaz: internal testing 44 (0.44.0). Hourly athkar volume slider. Not production.
 - 2026-10-08 Issue #22. Hourly athkar volume slider + PLAY preview. Persist `athkar_volume`.
 - 2026-10-08 Mutaz: internal testing 43 (0.43.0). Morning athkar volume slider. Not production.

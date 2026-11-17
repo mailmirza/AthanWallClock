@@ -14,6 +14,7 @@ import com.mutazyounes.prayerathan.audio.AudioSettingsStore
 import com.mutazyounes.prayerathan.engine.WallClock
 import com.mutazyounes.prayerathan.shell.LocationFixer
 import com.mutazyounes.prayerathan.shell.SyncedClock
+import com.mutazyounes.prayerathan.smarthome.SmartHome
 import com.mutazyounes.prayerathan.ui.WallSettingsStore
 import com.mutazyounes.prayerathan.weather.OpenMeteoWeather
 import com.mutazyounes.prayerathan.weather.WeatherClient
@@ -29,4 +30,5 @@ class PrayerAthanApp : Application() {
     val wallSettings: WallSettingsStore by lazy { WallSettingsStore(this) }
     val audioSettings: AudioSettingsStore by lazy { AudioSettingsStore(this) }
     val weatherClient: WeatherClient by lazy { OpenMeteoWeather(locationStore) }
+    val smartHome: SmartHome by lazy { SmartHome(this) }
 }

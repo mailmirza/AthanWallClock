@@ -42,6 +42,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
@@ -134,6 +135,7 @@ fun SettingsSheet(
     methodSettings: MethodSettings,
     resolvedMethod: CalcMethod,
     nightBlackoutEnabled: Boolean,
+    smartPanelEnabled: Boolean,
     demoId: String?,
     onSelectLocation: (String, Double, Double, String) -> Unit,
     onUseGps: () -> Unit,
@@ -152,6 +154,7 @@ fun SettingsSheet(
     onAsrSchoolChange: (AsrSchool) -> Unit,
     onPlayPrayerVolumePreview: (PrayerName, Int) -> Unit,
     onNightBlackoutChange: (Boolean) -> Unit,
+    onSmartPanelEnabledChange: (Boolean) -> Unit,
     onPlayAthanDemo: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -450,6 +453,10 @@ fun SettingsSheet(
                                 nightBlackoutEnabled = nightBlackoutEnabled,
                                 onNightBlackoutChange = onNightBlackoutChange,
                             )
+                            SmartPanelCard(
+                                enabled = smartPanelEnabled,
+                                onEnabledChange = onSmartPanelEnabledChange,
+                            )
                         }
                     }
                 } else {
@@ -550,6 +557,14 @@ fun SettingsSheet(
                         NightBlackoutCard(
                             nightBlackoutEnabled = nightBlackoutEnabled,
                             onNightBlackoutChange = onNightBlackoutChange,
+                        )
+
+                        SmartPanelCard(
+
+                            enabled = smartPanelEnabled,
+
+                            onEnabledChange = onSmartPanelEnabledChange,
+
                         )
                     }
                 }
@@ -1538,6 +1553,26 @@ private fun NightBlackoutCard(
             CompactSwitch(
                 active = nightBlackoutEnabled,
                 onActiveChange = onNightBlackoutChange,
+            )
+        },
+        body = false,
+    ) {
+    }
+}
+
+@Composable
+private fun SmartPanelCard(
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit,
+) {
+    ModernCardContainer(
+        title = "Home Controls",
+        icon = Icons.Default.Home,
+        subtitle = "WiZ lights panel · Swipe the wall or tap the bulb · Back to clock after 30 s",
+        trailing = {
+            CompactSwitch(
+                active = enabled,
+                onActiveChange = onEnabledChange,
             )
         },
         body = false,

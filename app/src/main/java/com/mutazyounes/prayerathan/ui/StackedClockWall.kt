@@ -198,9 +198,8 @@ fun LandscapeStackedWall(
                     softWrap = false,
                     overflow = TextOverflow.Clip,
                 )
-                SettingsButton(
-                    onClick = onOpenSettings,
-                    compact = true,
+                WallCornerButtons(
+                    onOpenSettings = onOpenSettings,
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }

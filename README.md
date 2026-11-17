@@ -51,6 +51,7 @@ Landscape: horseshoe arc clock on the left, spaced prayer list on the right. Por
 - **Keep awake.** `FLAG_KEEP_SCREEN_ON` while the wall is visible. Night blackout 11 PM–4 AM with tap-to-wake.
 - **City search + one GPS fix.** Bundled GeoNames catalog. First launch asks for location; deny keeps Albany, NY.
 - **Ambient weather.** Open-Meteo temperature and condition in the header.
+- **Home controls (optional).** Flip the wall over to a WiZ lights panel: tap a tile to toggle, open a bulb for brightness, white, colour and scenes. Local Wi-Fi control, no cloud or hub. The clock comes back after 30 seconds untouched, and immediately when an Athan starts.
 - **Privacy.** No accounts, ads, trackers, or backend.
 
 <div align="center">
@@ -68,6 +69,18 @@ Landscape: horseshoe arc clock on the left, spaced prayer list on the right. Por
 
 ---
 
+## Home controls
+
+Off by default. Turn on **Settings → Home Controls**. A lightbulb then appears beside the settings gear.
+
+- **Open:** tap the lightbulb, or swipe the clock sideways. The wall flips like a card.
+- **Tiles:** tap to toggle (reads the real state, then flips it). The sliders icon, or a long-press, opens a bulb's controls. **All** turns everything off if any light is on, otherwise all on. Tiles re-check every 15 seconds.
+- **Back to the clock:** the X button, 30 seconds with no touch (2 minutes while setting up lights), or straight away when an Athan starts.
+- **Set up:** the pencil button. **Search for WiZ lights** finds devices on the tablet's own subnet; lights behind another router or on a separate network are added by IP. Rename, reorder or remove them there.
+- **Requirements:** in the WiZ app, turn on *Allow local communication*. Give each device a fixed IP (DHCP reservation) in the router.
+
+Same protocol as the MyHome Android TV app (`Wiz.java`): JSON over UDP port 38899, ported to Kotlin in `smarthome/`.
+
 ## Architecture
 
 ```
@@ -77,6 +90,7 @@ app/src/main/java/com/mutazyounes/prayerathan/
 ├── audio/                   # AlarmManager, AthanService, MediaPlayer, athkar
 ├── ui/                      # Compose wall, settings, themes
 ├── shell/                   # BootReceiver, GPS-once, NTP client
+├── smarthome/               # WiZ local control (UDP), saved lights, panel state
 └── weather/                 # Open-Meteo client
 ```
 

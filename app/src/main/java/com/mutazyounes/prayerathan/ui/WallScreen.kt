@@ -1,11 +1,15 @@
 package com.mutazyounes.prayerathan.ui
 
 import android.app.Activity
+import android.os.SystemClock
 import android.view.WindowManager
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -27,8 +31,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -40,6 +46,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -53,6 +62,8 @@ import androidx.compose.ui.unit.sp
 import com.mutazyounes.prayerathan.engine.CityCatalog
 import com.mutazyounes.prayerathan.shell.BatteryLowAlert
 import com.mutazyounes.prayerathan.shell.BatteryMonitor
+import com.mutazyounes.prayerathan.smarthome.SmartHome
+import kotlin.math.abs
 import kotlin.math.min
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -64,14 +75,37 @@ import kotlinx.coroutines.withContext
  */
 const val UseStackedClocks = true
 
+/** Set while the smart-home panel is enabled: opens it from the wall's corner button. */
+val LocalOpenLights = compositionLocalOf<(() -> Unit)?> { null }
+
+/** How long the smart-home panel may sit untouched before the clock comes back. */
+const val SMART_PANEL_IDLE_MS = 30_000L
+
+/** Longer while setting up lights, since typing on the keyboard isn't seen as a touch here. */
+const val SMART_PANEL_SETUP_IDLE_MS = 120_000L
+
 @Composable
 fun WallScreen(
     viewModel: WallViewModel,
+    smartHome: SmartHome,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsState()
     var settingsOpen by remember { mutableStateOf(false) }
     var userAwake by remember { mutableStateOf(false) }
+
+    val panelEnabled by smartHome.enabled.collectAsState()
+    var panelOpen by remember { mutableStateOf(false) }
+    var panelEditing by remember { mutableStateOf(false) }
+    var lastPanelTouch by remember { mutableLongStateOf(0L) }
+    val openPanel = {
+        lastPanelTouch = SystemClock.uptimeMillis()
+        panelOpen = true
+    }
+    val closePanel = {
+        panelOpen = false
+        panelEditing = false
+    }
 
     LaunchedEffect(userAwake) {
         if (userAwake) {
@@ -80,7 +114,30 @@ fun WallScreen(
         }
     }
 
-    val showBlackout = state.isNightBlackout && !userAwake && !settingsOpen
+    // Idle return: every touch on the panel restarts the countdown.
+    LaunchedEffect(panelOpen, panelEditing, lastPanelTouch) {
+        if (panelOpen) {
+            delay(if (panelEditing) SMART_PANEL_SETUP_IDLE_MS else SMART_PANEL_IDLE_MS)
+            closePanel()
+        }
+    }
+    // The Athan always wins: back to the clock the moment it starts.
+    LaunchedEffect(state.athanPlaying) {
+        if (state.athanPlaying) closePanel()
+    }
+    LaunchedEffect(panelEnabled) {
+        if (!panelEnabled) closePanel()
+    }
+
+    val flip by animateFloatAsState(
+        targetValue = if (panelOpen) 180f else 0f,
+        animationSpec = tween(durationMillis = 550),
+        label = "wallFlip",
+    )
+    val density = LocalDensity.current
+    val swipeThreshold = with(density) { 96.dp.toPx() }
+
+    val showBlackout = state.isNightBlackout && !userAwake && !settingsOpen && !panelOpen
 
     val context = LocalContext.current
     LaunchedEffect(Unit) {
@@ -111,14 +168,67 @@ fun WallScreen(
         }
     }
 
-    CompositionLocalProvider(LocalWallPalette provides DarkWallPalette) {
+    CompositionLocalProvider(
+        LocalWallPalette provides DarkWallPalette,
+        LocalOpenLights provides if (panelEnabled) openPanel else null,
+    ) {
         Box(modifier.fillMaxSize()) {
-            WallScreen(
-                state = state,
-                onStopAthan = viewModel::stopAthan,
-                onOpenSettings = { settingsOpen = true },
-                modifier = Modifier.fillMaxSize(),
-            )
+            // A card flip: the clock is the front, the smart-home panel the back.
+            if (flip < 90f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            rotationY = flip
+                            cameraDistance = 14f * density.density
+                        }
+                        .pointerInput(panelEnabled) {
+                            if (!panelEnabled) return@pointerInput
+                            var travel = 0f
+                            detectHorizontalDragGestures(
+                                onDragStart = { travel = 0f },
+                                onDragEnd = { if (abs(travel) > swipeThreshold) openPanel() },
+                            ) { change, dx ->
+                                change.consume()
+                                travel += dx
+                            }
+                        },
+                ) {
+                    WallScreen(
+                        state = state,
+                        onStopAthan = viewModel::stopAthan,
+                        onOpenSettings = { settingsOpen = true },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            rotationY = flip - 180f
+                            cameraDistance = 14f * density.density
+                        }
+                        // Watches every touch without taking it, to restart the idle countdown.
+                        .pointerInput(Unit) {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    awaitPointerEvent(PointerEventPass.Initial)
+                                    lastPanelTouch = SystemClock.uptimeMillis()
+                                }
+                            }
+                        },
+                ) {
+                    SmartPanel(
+                        home = smartHome,
+                        state = state,
+                        editing = panelEditing,
+                        onEditingChange = { panelEditing = it },
+                        onClose = closePanel,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
             if (showBlackout) {
                 Box(
                     modifier = Modifier
@@ -150,6 +260,7 @@ fun WallScreen(
                     methodSettings = state.methodSettings,
                     resolvedMethod = state.resolvedMethod,
                     nightBlackoutEnabled = state.nightBlackoutEnabled,
+                    smartPanelEnabled = panelEnabled,
                     demoId = state.demoId,
                     onSelectLocation = { label, lat, lon, zone ->
                         if (viewModel.saveLocation(label, lat, lon, zone)) {
@@ -172,6 +283,7 @@ fun WallScreen(
                     onAsrSchoolChange = viewModel::setAsrSchool,
                     onPlayPrayerVolumePreview = viewModel::playPrayerVolumePreview,
                     onNightBlackoutChange = viewModel::setNightBlackout,
+                    onSmartPanelEnabledChange = smartHome::setEnabled,
                     onPlayAthanDemo = viewModel::playAthanDemo,
                     onDismiss = {
                         viewModel.stopDemo()
@@ -478,9 +590,8 @@ fun Header(
                 minSp = if (showBattery) type.label.value * 1.1f else type.label.value,
                 modifier = Modifier.fillMaxWidth(),
             )
-            SettingsButton(
-                onClick = onOpenSettings,
-                compact = true,
+            WallCornerButtons(
+                onOpenSettings = onOpenSettings,
                 modifier = Modifier.padding(top = 2.dp),
             )
         }
@@ -682,6 +793,21 @@ private fun FittingLine(
             maxLines = 1,
             modifier = Modifier.fillMaxWidth(),
         )
+    }
+}
+
+/** The wall's corner controls: lights (when the smart-home panel is on) and settings. */
+@Composable
+fun WallCornerButtons(
+    onOpenSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val openLights = LocalOpenLights.current
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        if (openLights != null) {
+            LightsButton(onClick = openLights)
+        }
+        SettingsButton(onClick = onOpenSettings, compact = true)
     }
 }
 
