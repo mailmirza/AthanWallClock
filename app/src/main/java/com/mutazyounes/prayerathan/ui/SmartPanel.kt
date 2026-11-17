@@ -124,6 +124,7 @@ fun SmartPanel(
             ),
     ) {
         val portrait = maxHeight >= maxWidth
+        val columns = if (portrait) 2 else if (maxWidth > 1100.dp) 4 else 3
         val shortest = min(maxWidth.value, maxHeight.value)
         val inset = screenInset(shortest)
         WallBackdrop(portrait = portrait)
@@ -168,7 +169,7 @@ fun SmartPanel(
                     else -> LightTiles(
                         home = home,
                         lights = lights,
-                        columns = if (portrait) 2 else if (maxWidth > 1100.dp) 4 else 3,
+                        columns = columns,
                         onOpen = { detailId = it },
                     )
                 }
