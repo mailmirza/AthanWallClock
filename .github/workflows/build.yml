@@ -38,11 +38,20 @@ jobs:
           echo "---- NewApi findings ----"
           grep -B2 -A8 "NewApi\|InlinedApi" app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt || echo "none"
 
+      - name: Name the APK with its version
+        id: apk
+        run: |
+          VERSION=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          NAME="AthanWallClock-${VERSION}.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "$NAME"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: AthanWallClock-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: AthanWallClock-${{ steps.apk.outputs.version }}-apk
+          path: ${{ steps.apk.outputs.name }}
           if-no-files-found: error
 
       - name: Upload test reports
